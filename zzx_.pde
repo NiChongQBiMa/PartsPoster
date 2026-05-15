@@ -28,11 +28,11 @@ PFont viewBtnFont;
 // ==================== 唱片 ====================
 float vinylAngle = 0;
 float vinylX, vinylY;
-float vinylR = 45;
+float vinylR = 50;
 boolean musicPlaying = true;
 
 // ==================== 主菜单：按钮 ====================
-float btnW = 180, btnH = 60;
+float btnW = 200, btnH = 66;
 float clawBtnX, clawBtnY;
 float clawV2BtnX, clawV2BtnY;
 color btnColor  = color(60, 60, 60, 200);
@@ -58,12 +58,12 @@ color tiffanyFill = color(78, 205, 196);
 color redBorder = color(220, 60, 60);
 
 // 视图按钮（居中）
-float vBtnW = 80, vBtnH = 36, vBtnGap = 20;
+float vBtnW = 90, vBtnH = 40, vBtnGap = 24;
 float vBtnY;
 float vBtnFrontX, vBtnUpX, vBtnLeftX;
 
 // 首页按钮
-float homeX = 30, homeY = 30, homeSize = 44;
+float homeX = 30, homeY = 30, homeSize = 48;
 
 // View 切换动画
 PImage prevViewImg;
@@ -72,13 +72,16 @@ boolean viewSwitching = false;
 
 // ==================== SETUP ====================
 void setup() {
-  size(1000, 700);
+  size(1366, 768);
+  pixelDensity(1);       // Win7 兼容，避免 HiDPI 缩放模糊
+  smooth();              // 抗锯齿，文字/图形边缘更平滑
+  hint(ENABLE_STROKE_PURE); // 描边精确渲染
 
-  // 字体
-  titleFont  = createFont("Microsoft YaHei", 42, true);
-  btnFont    = createFont("Microsoft YaHei", 22, true);
-  tipFont    = createFont("Microsoft YaHei", 12, true);
-  viewBtnFont = createFont("Microsoft YaHei", 18, true);
+  // 字体（适配 1366×768 稍放大）
+  titleFont   = createFont("Microsoft YaHei", 48, true);
+  btnFont     = createFont("Microsoft YaHei", 26, true);
+  tipFont     = createFont("Microsoft YaHei", 14, true);
+  viewBtnFont = createFont("Microsoft YaHei", 20, true);
 
   // 资源
   bgImg = loadImage("BG.jpg");
@@ -89,19 +92,19 @@ void setup() {
 
   // 主菜单按钮位置
   float cx = width / 2;
-  float gap = 40;
+  float gap = 50;
   float btnCY = height * 0.55;
-  clawBtnX  = cx - btnW - gap / 2;
-  clawBtnY  = btnCY - btnH / 2;
+  clawBtnX   = cx - btnW - gap / 2;
+  clawBtnY   = btnCY - btnH / 2;
   clawV2BtnX = cx + gap / 2;
   clawV2BtnY = btnCY - btnH / 2;
 
   titleY = height * 0.12;
-  vinylX = width - 80;
-  vinylY = height - 80;
+  vinylX = width - 90;
+  vinylY = height - 90;
 
   // 视图按钮位置（居中）
-  vBtnY = 26;
+  vBtnY = 30;
   float totalBtnW = vBtnW * 3 + vBtnGap * 2;
   float btnStartX = (width - totalBtnW) / 2;
   vBtnFrontX = btnStartX;
@@ -183,11 +186,11 @@ void startTransition(String part, float sx, float sy, String label) {
 
   animStartX = sx;
   animStartY = sy;
-  animStartSize = 22;
+  animStartSize = 26;
 
   animEndX = width / 2;
   animEndY = height / 2;
-  animEndSize = 60;
+  animEndSize = 72;
 }
 
 void drawTransOut() {
@@ -414,11 +417,21 @@ void drawVinyl() {
   noStroke();
   popMatrix();
 
+  // 静音时绘制红叉
+  if (!musicPlaying) {
+    stroke(255, 50, 50);
+    strokeWeight(3);
+    float crossR = vinylR * 1.1;
+    line(vinylX - crossR, vinylY - crossR, vinylX + crossR, vinylY + crossR);
+    line(vinylX + crossR, vinylY - crossR, vinylX - crossR, vinylY + crossR);
+    noStroke();
+  }
+
   float d = dist(mouseX, mouseY, vinylX, vinylY);
   if (d < vinylR) {
     fill(255, 255, 255, 180);
     textFont(tipFont);
-    text(musicPlaying ? "暂停音乐" : "播放音乐", vinylX, vinylY - vinylR - 15);
+    text(musicPlaying ? "静音" : "取消静音", vinylX, vinylY - vinylR - 15);
   }
 }
 
@@ -428,8 +441,11 @@ void mousePressed() {
   float d = dist(mouseX, mouseY, vinylX, vinylY);
   if (d < vinylR) {
     musicPlaying = !musicPlaying;
-    if (musicPlaying) bgm.play();
-    else bgm.pause();
+    if (musicPlaying) {
+      bgm.amp(0.5);  // 恢复音量（音乐始终在后台循环）
+    } else {
+      bgm.amp(0);    // 静音（不停止循环）
+    }
     return;
   }
 
