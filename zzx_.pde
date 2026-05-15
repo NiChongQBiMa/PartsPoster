@@ -4,7 +4,6 @@ import processing.sound.*;
 final int MAIN       = 0;
 final int TRANS_OUT  = 1;
 final int VIEW       = 2;
-final int TRANS_VIEW = 3;
 int state = MAIN;
 
 int transStartFrame;
@@ -58,7 +57,7 @@ color tiffany = color(78, 205, 196);    // 蒂芙尼蓝
 color tiffanyFill = color(78, 205, 196);
 color redBorder = color(220, 60, 60);
 
-// 视图按钮
+// 视图按钮（居中）
 float vBtnW = 80, vBtnH = 36, vBtnGap = 20;
 float vBtnY;
 float vBtnFrontX, vBtnUpX, vBtnLeftX;
@@ -66,12 +65,10 @@ float vBtnFrontX, vBtnUpX, vBtnLeftX;
 // 首页按钮
 float homeX = 30, homeY = 30, homeSize = 44;
 
-// 图片显示区域
-float imgAreaX, imgAreaY, imgAreaW, imgAreaH;
-
-// View 过渡
-int viewTransFrame = 0;
-boolean viewTransIn = false;
+// View 切换动画
+PImage prevViewImg;
+int viewSwitchFrame = 0;
+boolean viewSwitching = false;
 
 // ==================== SETUP ====================
 void setup() {
@@ -103,17 +100,13 @@ void setup() {
   vinylX = width - 80;
   vinylY = height - 80;
 
-  // 视图按钮位置
+  // 视图按钮位置（居中）
   vBtnY = 26;
-  vBtnFrontX = homeX + homeSize + 30;
-  vBtnUpX    = vBtnFrontX + vBtnW + vBtnGap;
-  vBtnLeftX  = vBtnUpX    + vBtnW + vBtnGap;
-
-  // 图片区域
-  imgAreaX = 80;
-  imgAreaY = 110;
-  imgAreaW = width - 160;
-  imgAreaH = height - 190;
+  float totalBtnW = vBtnW * 3 + vBtnGap * 2;
+  float btnStartX = (width - totalBtnW) / 2;
+  vBtnFrontX = btnStartX;
+  vBtnUpX    = btnStartX + vBtnW + vBtnGap;
+  vBtnLeftX  = btnStartX + (vBtnW + vBtnGap) * 2;
 
   textAlign(CENTER, CENTER);
   rectMode(CORNER);
@@ -125,7 +118,6 @@ void draw() {
     case MAIN:      drawMain();      break;
     case TRANS_OUT: drawTransOut();  break;
     case VIEW:      drawView();      break;
-    case TRANS_VIEW:drawTransView(); break;
   }
 }
 
@@ -238,8 +230,9 @@ void enterView(String part) {
   currentView = "Front";
   loadPartImages(part);
   updateCurrentImage();
-  viewTransIn = true;
-  viewTransFrame = frameCount;
+  prevViewImg = null;
+  viewSwitching = true;
+  viewSwitchFrame = frameCount;
 }
 
 void loadPartImages(String part) {
@@ -268,30 +261,45 @@ void updateCurrentImage() {
 
 // ==================== 视图页 ====================
 void drawView() {
-  // 黑色背景
   background(20);
 
-  // 图片淡入效果
-  float fade = 1.0;
-  if (viewTransIn) {
-    int e = frameCount - viewTransFrame;
-    if (e < 15) {
-      fade = map(e, 0, 15, 0, 1);
-    } else {
-      viewTransIn = false;
-    }
-  }
-
+  // 图片全屏显示（被按钮遮盖）
   if (currentViewImg != null) {
-    tint(255, fade * 255);
-    // 居中按比例显示
-    float scale = min(imgAreaW / currentViewImg.width, imgAreaH / currentViewImg.height);
+    float scale = max(float(width) / currentViewImg.width, float(height) / currentViewImg.height);
     float iw = currentViewImg.width * scale;
     float ih = currentViewImg.height * scale;
-    float ix = width / 2 - iw / 2;
-    float iy = imgAreaY + (imgAreaH - ih) / 2;
-    image(currentViewImg, ix, iy, iw, ih);
-    noTint();
+    float ix = (width - iw) / 2;
+    float iy = (height - ih) / 2;
+
+    if (viewSwitching && prevViewImg != null) {
+      // 视图切换：旧图淡出 + 新图淡入
+      int elapsed = frameCount - viewSwitchFrame;
+      float t = min(float(elapsed) / 15.0, 1.0);
+      // 旧图
+      tint(255, (1 - t) * 255);
+      image(prevViewImg, ix, iy, iw, ih);
+      // 新图
+      tint(255, t * 255);
+      image(currentViewImg, ix, iy, iw, ih);
+      noTint();
+      if (t >= 1.0) {
+        viewSwitching = false;
+        prevViewImg = null;
+      }
+    } else if (viewSwitching) {
+      // 刚进入视图：新图淡入
+      int elapsed = frameCount - viewSwitchFrame;
+      float t = min(float(elapsed) / 15.0, 1.0);
+      tint(255, t * 255);
+      image(currentViewImg, ix, iy, iw, ih);
+      noTint();
+      if (t >= 1.0) {
+        viewSwitching = false;
+      }
+    } else {
+      // 正常显示
+      image(currentViewImg, ix, iy, iw, ih);
+    }
   }
 
   // 上方按钮
@@ -301,10 +309,12 @@ void drawView() {
   drawViewButton(vBtnLeftX,  vBtnY, vBtnW, vBtnH, "左", currentView.equals("Left"));
 
   // 部件名称标签
-  fill(255, 120);
+  fill(0, 0, 0, 160);
+  noStroke();
+  rect(0, height - 36, width, 36);
+  fill(255, 200);
   textFont(viewBtnFont);
-  String label = currentPart + " — " + getViewCN(currentView);
-  text(label, width / 2, height - 30);
+  text(currentPart + " — " + getViewCN(currentView), width / 2, height - 18);
 
   // 唱片
   drawVinyl();
@@ -330,19 +340,19 @@ void drawHomeButton() {
   }
   rect(homeX, homeY, homeSize, homeSize, 10);
 
-  // 房屋图标
+  // 房屋图标（扁一点）
   float cx = homeX + homeSize / 2;
   float cy = homeY + homeSize / 2;
-  float s = homeSize * 0.28;
+  float s = homeSize * 0.30;
   noStroke();
   fill(redBorder);
-  // 屋顶三角形
-  triangle(cx - s, cy - s * 0.4f, cx, cy - s * 1.4f, cx + s, cy - s * 0.4f);
-  // 屋身矩形
-  rect(cx - s * 0.75f, cy - s * 0.4f, s * 1.5f, s * 1.4f);
+  // 屋顶（矮三角形）
+  triangle(cx - s * 1.1, cy - s * 0.2, cx, cy - s * 1.0, cx + s * 1.1, cy - s * 0.2);
+  // 屋身（扁矩形）
+  rect(cx - s * 0.85, cy - s * 0.2, s * 1.7, s * 0.9);
   // 门
   fill(20);
-  rect(cx - s * 0.2f, cy + s * 0.2f, s * 0.4f, s * 0.8f);
+  rect(cx - s * 0.2, cy + s * 0.05, s * 0.4, s * 0.65);
 
   // 悬停文字
   if (hover) {
@@ -378,53 +388,6 @@ void drawViewButton(float x, float y, float w, float h, String label, boolean ac
     fill(tiffany);
     ellipse(x + w / 2, y + h + 7, 6, 6);
   }
-}
-
-// ==================== 视图间过渡 ====================
-void drawTransView() {
-  int elapsed = frameCount - transStartFrame;
-  float t = min(float(elapsed) / 12.0, 1.0);  // 0.2秒
-  float fade = 0;
-
-  // 前一半：旧图淡出
-  if (t < 0.5) {
-    drawViewWithFade(map(t, 0, 0.5, 1, 0));
-  } else {
-    // 后一半：新图淡入
-    updateCurrentImage();
-    drawViewWithFade(map(t, 0.5, 1, 0, 1));
-  }
-
-  if (t >= 1.0) {
-    state = VIEW;
-    updateCurrentImage();
-    viewTransIn = true;
-    viewTransFrame = frameCount;
-  }
-}
-
-void drawViewWithFade(float alpha) {
-  background(20);
-
-  if (currentViewImg != null) {
-    tint(255, alpha * 255);
-    float scale = min(imgAreaW / currentViewImg.width, imgAreaH / currentViewImg.height);
-    float iw = currentViewImg.width * scale;
-    float ih = currentViewImg.height * scale;
-    image(currentViewImg, width / 2 - iw / 2, imgAreaY + (imgAreaH - ih) / 2, iw, ih);
-    noTint();
-  }
-
-  drawHomeButton();
-  drawViewButton(vBtnFrontX, vBtnY, vBtnW, vBtnH, "前", currentView.equals("Front"));
-  drawViewButton(vBtnUpX,    vBtnY, vBtnW, vBtnH, "上", currentView.equals("Up"));
-  drawViewButton(vBtnLeftX,  vBtnY, vBtnW, vBtnH, "左", currentView.equals("Left"));
-
-  fill(255, 120);
-  textFont(viewBtnFont);
-  text(currentPart + " — " + getViewCN(currentView), width / 2, height - 30);
-
-  drawVinyl();
 }
 
 // ==================== 唱片（始终显示） ====================
@@ -521,8 +484,10 @@ void mouseView() {
 
   if (newView != null && !newView.equals(currentView)) {
     clickSfx.play();
+    prevViewImg = currentViewImg;
     currentView = newView;
-    state = TRANS_VIEW;
-    transStartFrame = frameCount;
+    updateCurrentImage();
+    viewSwitching = true;
+    viewSwitchFrame = frameCount;
   }
 }
