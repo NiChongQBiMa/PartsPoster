@@ -1,6 +1,6 @@
-# 零部件电子海报 🎨
+# PartsPoster 🎨
 
-基于 [Processing 4](https://processing.org/) 开发的交互式零部件电子海报展示程序。
+> 零部件电子海报 — 基于 [Processing 4](https://processing.org/) 开发的交互式零部件电子海报展示程序。
 
 ## ✨ 功能特性
 
@@ -46,7 +46,7 @@
 ## 📂 项目结构
 
 ```
-zzx_/
+PartsPoster/
 ├── zzx_.pde              # Processing 主程序
 ├── data/                  # 资源文件（图片、音频）
 ├── code/                  # 第三方 Java 库（音频解码）
