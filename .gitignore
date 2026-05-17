@@ -1,0 +1,22 @@
+# Processing 项目文件
+*.pde~
+
+# JVM 崩溃日志
+hs_err_pid*.log
+
+# 捆绑的 Java 运行环境（不应上传到 GitHub）
+windows-amd64/
+
+# 操作系统生成文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE 文件
+.idea/
+*.iml
+.vscode/
+
+# 临时文件
+*.tmp
+*.temp
