@@ -74,7 +74,8 @@ boolean viewSwitching = false;
 void setup() {
   size(1366, 768);
   pixelDensity(1);       // Win7 兼容，避免 HiDPI 缩放模糊
-  smooth();              // 抗锯齿，文字/图形边缘更平滑
+  smooth(2);             // 2x 抗锯齿：文字清晰、帧率友好（默认 4x 开销大）
+  frameRate(60);         // 锁定 60fps 目标帧率
   hint(ENABLE_STROKE_PURE); // 描边精确渲染
 
   // 字体（适配 1366×768 稍放大）
@@ -85,6 +86,15 @@ void setup() {
 
   // 资源
   bgImg = loadImage("BG.jpg");
+
+  // 预加载所有部件图片，避免视图切换时同步加载造成卡顿
+  clawFront  = loadImage("Claw_Front.png");
+  clawUp     = loadImage("Claw_Up.png");
+  clawLeft   = loadImage("Claw_Left.PNG");
+  claw2Front = loadImage("Claw2_Front.png");
+  claw2Up    = loadImage("Claw2_Up.png");
+  claw2Left  = loadImage("Claw2_Left.png");
+
   bgm = new SoundFile(this, "BGM.mp3");
   clickSfx = new SoundFile(this, "Sd1.wav");
   bgm.amp(0.5);
@@ -211,7 +221,8 @@ void drawTransOut() {
   animTextSize = lerp(animStartSize, animEndSize, ease);
 
   fill(255);
-  textFont(createFont("Microsoft YaHei", animTextSize, true));
+  textFont(titleFont);
+  textSize(animTextSize);
   text(animLabel, animTextX, animTextY);
 
   // 唱片
@@ -231,23 +242,10 @@ void enterView(String part) {
   state = VIEW;
   currentPart = part;
   currentView = "Front";
-  loadPartImages(part);
   updateCurrentImage();
   prevViewImg = null;
   viewSwitching = true;
   viewSwitchFrame = frameCount;
-}
-
-void loadPartImages(String part) {
-  if (part.equals("Claw")) {
-    clawFront = loadImage("Claw_Front.png");
-    clawUp    = loadImage("Claw_Up.png");
-    clawLeft  = loadImage("Claw_Left.PNG");
-  } else {
-    claw2Front = loadImage("Claw2_Front.png");
-    claw2Up    = loadImage("Claw2_Up.png");
-    claw2Left  = loadImage("Claw2_Left.png");
-  }
 }
 
 void updateCurrentImage() {
